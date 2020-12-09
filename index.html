@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+  <title>WEB1 - Welcome</title>
+  <meta charset="utf-8">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="colors.js"></script>
+</head>
+<body>
+  <h1><a href="index.html">WEB</a></h1>
+  <input id="night_day" type="button" value="night" onclick="
+    nightDayHandler(this);
+  ">
+  <ol>
+
+  </ol>
+  <article>
+  </article>
+  <script>
+    function FetchPage(name) {
+      fetch(name).then(function(response){
+        response.text().then(function(text){
+          article = document.querySelector('article');
+          article.innerHTML = text;
+          console.log(text);
+        })
+      })
+    }
+    function CreateList(){
+      fetch('list').then(function(response){
+        response.text().then(function(text){
+          const list = text.split(',');
+          const ol = document.querySelector('ol');
+          for(let i=0; i<list.length;i++){
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = "#!" + list[i];
+            a.innerText = list[i];
+            a.onclick = function(){
+              FetchPage(list[i]);
+            }
+            li.appendChild(a);
+            ol.appendChild(li);
+          }
+        })
+      })
+    }
+    function init(){
+      if(location.hash){
+        FetchPage(location.hash.substr(2));
+      }
+      else{
+        document.querySelector("article").innerHTML = "<h1>Hello Ajax!</h1>";
+      }
+      CreateList();
+    }
+    init();
+  </script>
+</body>
+</html>
