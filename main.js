@@ -2,9 +2,17 @@ const http = require('http');
 const fs = require('fs');
 const url = require('url');
 const qs = require('querystring');
+const mysql = require('mysql');
 const template = require('./lib/template.js');
 const path = require('path');
 const sanitizeHtml = require('sanitize-html');
+const conn = mysql.createConnection({
+  host     : 'localhost',
+  user     : 'nodejs',
+  password : '1111',
+  database : 'wookkl'
+});
+conn.connect();
 const app = http.createServer(function(request,response){
   const _url = request.url;
   const queryData = url.parse(_url, true).query;
@@ -12,45 +20,49 @@ const app = http.createServer(function(request,response){
   const folder = './data/';
   if(pathName === '/') {
     if(queryData.id === undefined) {
-      fs.readdir(folder, (err, files) => {
+      conn.query(`SELECT * FROM topic`, (err, topics, fields) => {
+        console.log(topics);
         const title = 'Welcome';
         const description = 'Hellow, Node js';
-        const list = template.list(files);
+        const list = template.list(topics);
         const html = template.html(
-          title,
-          list,
-          `<h2>${title}</h2><article>${description}</article>`,
-          '<a href="/create">Create</a>'
-          );
+              title,
+              list,
+              `<h2>${title}</h2><article>${description}</article>`,
+              '<a href="/create">Create</a>'
+              );
         response.writeHead(200);
         response.end(html);
       })
     } else {
-      fs.readdir(folder, (err, files) => {
-        const filterdId = path.parse(queryData.id)
-        fs.readFile(`data/${filterdId}`, 'utf8', function(err, description) {
-          const title = queryData.id;
-          const list = template.list(files);
-          const sanitizedTitle = sanitizeHtml(title);
-          const sanitizedDescription = sanitizeHtml(description);
+      conn.query('SELECT * FROM topic', (err, topics) => {
+        if(err) {
+          throw err;
+        }
+        conn.query(`SELECT * FROM topic WHERE id=?`,[queryData.id], (err2, topic) => { 
+          if(err2) {
+            throw err2;
+          }
+          const title = topic[0].title;
+          const description = topic[0].description;
+          const list = template.list(topics);
           const html = template.html(
-            sanitizedTitle,
-            list,
-            `<h2>${sanitizedTitle}</h2><article>${sanitizedDescription}</article>`,
-            `<a href="/create">Create</a> 
-            <a href="/update?id=${sanitizedTitle}">Update</a> 
-            <form action="delete_process" method="POST">
-              <input type="hidden" name="id" value="${sanitizedTitle}"/>
-              <input type="submit" value="delete"/>
-            </form>`
-            );
+                  sanitizedTitle,
+                  list,
+                  `<h2>${title}</h2><article>${description}</article>`,
+                  `<a href="/create">Create</a> 
+                  <a href="/update?id=${queryData.id}">Update</a> 
+                  <form action="delete_process" method="POST">
+                    <input type="hidden" name="id" value="${queryData.id}"/>
+                    <input type="submit" value="delete"/>
+                  </form>`
+                  );
           response.writeHead(200);
           response.end(html);
-        })
+        });
       });
     }
-  } 
-  else if (pathName === '/create'){
+  } else if (pathName === '/create'){
     fs.readdir(folder, (err, files) => {
       const title = 'Welcome';
       const description = 'Hellow, Node js';
