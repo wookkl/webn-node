@@ -38,7 +38,7 @@ const app = http.createServer(function(request,response){
         if(err) {
           throw err;
         }
-        conn.query(`SELECT * FROM topic WHERE id=?`,[queryData.id], (err2, topic) => { 
+        conn.query(`SELECT * FROM topic LEFT JOIN author ON topic.author_id = author.id WHERE topic.id=?`,[queryData.id], (err2, topic) => { 
           if(err2) {
             throw err2;
           }
@@ -48,7 +48,7 @@ const app = http.createServer(function(request,response){
           const html = template.html(
                   title,
                   list,
-                  `<h2>${title}</h2><article>${description}</article>`,
+                  `<h2>${title}</h2><article><p>${description}</p>by ${topic[0].name}</article>`,
                   `<a href="/create">Create</a> 
                   <a href="/update?id=${queryData.id}">Update</a> 
                   <form action="delete_process" method="POST">
@@ -63,21 +63,24 @@ const app = http.createServer(function(request,response){
     }
   } else if (pathName === '/create'){
     conn.query(`SELECT * FROM topic`, (err, topics) => {
-      const list = template.list(topics);
-      const title = 'Create';
-      const html = template.html(title,
-              list,
-              `
-              <form action="/create_process" method="POST">
-                <p><input placeholder="title" type="input" name="title"/></p>
-                <p><textarea placeholder="description" name="description" rows=8></textarea></p>
-                <p><input type="submit"/></p>
-              </form>
-              `,
-              ''
-            );
-      response.writeHead(200);
-      response.end(html);
+      conn.query(`SELECT * FROM author`, (err, authors) => {
+        const list = template.list(topics);
+        const title = 'Create';
+        const html = template.html(title,
+                list,
+                `
+                <form action="/create_process" method="POST">
+                  <p><input placeholder="title" type="input" name="title"/></p>
+                  <p><textarea placeholder="description" name="description" rows=8></textarea></p>
+                  <p>${template.authorSelect(authors)}</p>
+                  <p><input type="submit"/></p>
+                </form>
+                `,
+                ''
+              );
+        response.writeHead(200);
+        response.end(html);
+      })
     })
   }
   else if (pathName === '/create_process') {
@@ -88,7 +91,7 @@ const app = http.createServer(function(request,response){
     request.on('end', () => {
       const post = qs.parse(body);
       conn.query(`INSERT INTO topic (title, description, created, author_id) VALUES(?, ?, NOW(), ?)`,
-      [post.title, post.description, 1],
+      [post.title, post.description, post.author],
        (err, result) => {
          if (err) {
            throw err;
@@ -108,22 +111,28 @@ const app = http.createServer(function(request,response){
         if (err2) {
           throw err2;
         }
-        const list = template.list(topics);
-        const title = 'Update';
-        const html = template.html(title,
-            list,
-            `
-            <form action="/update_process?id=${queryData.id}" method="POST">
-              <input type="hidden" name="id" value="${queryData.id}"/>
-              <p><input placeholder="title" type="input" name="title" value="${topic[0].title}"/></p>
-              <p><textarea placeholder="description" name="description" rows=8>${topic[0].description}</textarea></p>
-              <p><input type="submit"/></p>
-            </form>
-            `,
-            `<a href="/create">Create</a> <a href="/update?id=${queryData.id}">Update</a>`,
-            );
-          response.writeHead(200);
-          response.end(html);
+        conn.query(`SELECT * FROM author`, (err3, authors) => {
+          if (err3) {
+            throw err3;
+          }
+          const list = template.list(topics);
+          const title = 'Update';
+          const html = template.html(title,
+              list,
+              `
+              <form action="/update_process?id=${queryData.id}" method="POST">
+                <input type="hidden" name="id" value="${queryData.id}"/>
+                <p><input placeholder="title" type="input" name="title" value="${topic[0].title}"/></p>
+                <p><textarea placeholder="description" name="description" rows=8>${topic[0].description}</textarea></p>
+                <p>${template.authorSelect(authors)}</p>
+                <p><input type="submit"/></p>
+              </form>
+              `,
+              `<a href="/create">Create</a> <a href="/update?id=${queryData.id}">Update</a>`,
+              );
+            response.writeHead(200);
+            response.end(html);
+        });
       });
     });
   }
@@ -134,13 +143,12 @@ const app = http.createServer(function(request,response){
     });
     request.on('end', () => {
       const post = qs.parse(body);
-      conn.query(`UPDATE topic SET title=?, description=? WHERE id=?`,
-      [post.title, post.description, queryData.id],
+      conn.query(`UPDATE topic SET title=?, description=?, author_id=? WHERE id=?`,
+      [post.title, post.description, post.author, queryData.id],
        (err, results) => {
          if (err) {
            throw err;
          } else {
-           console.log(results);
            response.writeHead(302, {location: `/?id=${queryData.id}`});
            response.end();
          }
