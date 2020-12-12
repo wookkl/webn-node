@@ -20,8 +20,7 @@ const app = http.createServer(function(request,response){
   const folder = './data/';
   if(pathName === '/') {
     if(queryData.id === undefined) {
-      conn.query(`SELECT * FROM topic`, (err, topics, fields) => {
-        console.log(topics);
+      conn.query(`SELECT * FROM topic`, (err, topics) => {
         const title = 'Welcome';
         const description = 'Hellow, Node js';
         const list = template.list(topics);
@@ -47,7 +46,7 @@ const app = http.createServer(function(request,response){
           const description = topic[0].description;
           const list = template.list(topics);
           const html = template.html(
-                  sanitizedTitle,
+                  title,
                   list,
                   `<h2>${title}</h2><article>${description}</article>`,
                   `<a href="/create">Create</a> 
@@ -63,21 +62,20 @@ const app = http.createServer(function(request,response){
       });
     }
   } else if (pathName === '/create'){
-    fs.readdir(folder, (err, files) => {
-      const title = 'Welcome';
-      const description = 'Hellow, Node js';
-      const list = template.list(files);
+    conn.query(`SELECT * FROM topic`, (err, topics) => {
+      const list = template.list(topics);
+      const title = 'Create';
       const html = template.html(title,
-        list,
-        `
-        <form action="/create_process" method="POST">
-          <p><input placeholder="title" type="input" name="title"/></p>
-          <p><textarea placeholder="description" name="description" rows=8></textarea></p>
-          <p><input type="submit"/></p>
-        </form>
-        `,
-        ''
-        );
+              list,
+              `
+              <form action="/create_process" method="POST">
+                <p><input placeholder="title" type="input" name="title"/></p>
+                <p><textarea placeholder="description" name="description" rows=8></textarea></p>
+                <p><input type="submit"/></p>
+              </form>
+              `,
+              ''
+            );
       response.writeHead(200);
       response.end(html);
     })
@@ -89,37 +87,45 @@ const app = http.createServer(function(request,response){
     });
     request.on('end', () => {
       const post = qs.parse(body);
-      const title = post.title;
-      const description = post.description; 
-      fs.writeFile(`data/${title}`, description, 'utf8', (err) => {
-        if (err) throw err;
-        response.writeHead(302, {location: `/?id=${title}`});
-        response.end();
-      })
+      conn.query(`INSERT INTO topic (title, description, created, author_id) VALUES(?, ?, NOW(), ?)`,
+      [post.title, post.description, 1],
+       (err, result) => {
+         if (err) {
+           throw err;
+         } else {
+           response.writeHead(302, {location: `/?id=${result.insertId}`});
+           response.end();
+         }
+      });
     });
   }
   else if (pathName === '/update'){
-    fs.readdir(folder, (err, files) => {
-      const filterdId = path.parse(queryData.id)
-      fs.readFile(`data/${filterdId}`, 'utf8', function(err, description) {
-        const title = queryData.id;
-        const list = template.list(files);
+    conn.query(`SELECT * FROM topic`, (err, topics) => {
+      if (err) {
+        throw err;
+      }
+      conn.query(`SELECT * FROM topic WHERE id=?`,[queryData.id], (err2, topic) => {
+        if (err2) {
+          throw err2;
+        }
+        const list = template.list(topics);
+        const title = 'Update';
         const html = template.html(title,
-          list,
-          `
-          <form action="/update_process" method="POST">
-          <input type="hidden" name="id" value="${title}"/>
-            <p><input placeholder="title" type="input" name="title" value="${title}"/></p>
-            <p><textarea placeholder="description" name="description" rows=8>${description}</textarea></p>
-            <p><input type="submit"/></p>
-          </form>
-          `,
-          `<a href="/create">Create</a> <a href="/update?id=${title}">Update</a>`,
-          );
-        response.writeHead(200);
-        response.end(html);
-      })
-    })
+            list,
+            `
+            <form action="/update_process?id=${queryData.id}" method="POST">
+              <input type="hidden" name="id" value="${queryData.id}"/>
+              <p><input placeholder="title" type="input" name="title" value="${topic[0].title}"/></p>
+              <p><textarea placeholder="description" name="description" rows=8>${topic[0].description}</textarea></p>
+              <p><input type="submit"/></p>
+            </form>
+            `,
+            `<a href="/create">Create</a> <a href="/update?id=${queryData.id}">Update</a>`,
+            );
+          response.writeHead(200);
+          response.end(html);
+      });
+    });
   }
   else if (pathName === '/update_process'){
     let body = '';
@@ -128,16 +134,17 @@ const app = http.createServer(function(request,response){
     });
     request.on('end', () => {
       const post = qs.parse(body);
-      const id = post.id;
-      const newTitle = post.title;
-      const newDescription = post.description;
-      fs.rename(`data/${id}`, `data/${newTitle}`, (err) => {
-        fs.writeFile(`data/${newTitle}`, newDescription, 'utf8', (err) => {
-          if (err) throw err;
-          response.writeHead(302, {location: `/?id=${newTitle}`});
-          response.end();
-        })
-      })
+      conn.query(`UPDATE topic SET title=?, description=? WHERE id=?`,
+      [post.title, post.description, queryData.id],
+       (err, results) => {
+         if (err) {
+           throw err;
+         } else {
+           console.log(results);
+           response.writeHead(302, {location: `/?id=${queryData.id}`});
+           response.end();
+         }
+      });
     });
   }
   else if (pathName === '/delete_process'){
@@ -147,17 +154,16 @@ const app = http.createServer(function(request,response){
     });
     request.on('end', () => {
       const post = qs.parse(body);
-      const id = post.id;
-      const filterdId = path.parse(id);
-
-      fs.unlink(`data/${filterdId}`, (err) => {
-        if (err) {
-          console.error(err)
-          return
-        }
-        response.writeHead(302, {location: '/'});
-        response.end();
-      })
+      conn.query(`DELETE FROM topic WHERE id=?`,
+      [post.id],
+       (err, results) => {
+         if (err) {
+           throw err;
+         } else {
+           response.writeHead(302, {location: `/`});
+           response.end();
+         }
+      });
     });
   } else {
     response.writeHead(404);
