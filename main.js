@@ -32,8 +32,7 @@ const app = http.createServer(function(request,response){
     author.update_process(request, response);
   } else if (pathName === '/author/delete_process'){
     author.delete_process(request, response);
-  }
-  else {
+  } else {
     response.writeHead(404);
     response.end('404 not found');
   }

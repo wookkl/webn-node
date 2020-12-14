@@ -1,9 +1,8 @@
 const url = require("url");
 const qs = require("querystring");
+const sanitizedHtml = require("sanitize-html")
 const db = require("./db");
 const template = require("./template");
-const { request } = require("http");
-
 exports.detail = (request, response) => {
     db.query('SELECT * FROM topic', (err1, topics) => {
         if(err1) {
@@ -69,8 +68,8 @@ exports.update = (request, response) => {
                 <h4>Update Author</h4>
                 <form action="/author/update_process" method="POST">
                     <input type="hidden" name="id" value="${queryData.id}"/>
-                    <p><input placeholder="name" type="input" name="name" value="${author[0].name}"/></p>
-                    <p><textarea placeholder="profile" name="profile" rows=2>${author[0].profile}</textarea></p>
+                    <p><input placeholder="name" type="input" name="name" value="${sanitizedHtml(author[0].name)}"/></p>
+                    <p><textarea placeholder="profile" name="profile" rows=2>${sanitizedHtml(author[0].profile)}</textarea></p>
                     <p><input type="submit" value="update"/></p>
                 </form>
                 `,

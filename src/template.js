@@ -1,5 +1,7 @@
+const sanitizeHtml = require("sanitize-html");
+
 module.exports = {
-    html: (title, li, body, control) => {
+    html: (title, list, body, control) => {
       return `
         <!doctype html>
         <html>
@@ -20,7 +22,7 @@ module.exports = {
             <h3><a href="/author">author</a></h3>
             <h3>Topics</h3
             <ul>
-              ${li}
+              ${list}
             </ul>
             ${control}
             ${body}
@@ -31,15 +33,17 @@ module.exports = {
     list: (topics) => {
       let li = '';
       topics.forEach(topic => {
-        li += `<li><a href="/?id=${topic.id}">${topic.title}</a></li>`
+        li += `<li><a href="/?id=${topic.id}">${sanitizeHtml(topic.title)}</a></li>`
       });
       return li;
     },
-    authorSelect: (authors) => {
+    authorSelect: (authors, author_id) => {
+      console.log(author_id);
       let select = '';
         select+='<select name="author">';
         authors.forEach(author => {
-          select += `<option value="${author.id}">${author.name}</option>`
+          let selected='';
+          select += `<option value="${author.id}" ${selected}>${sanitizeHtml(author.name)}</option>`
         });
         select+='</select>';
         return select;
@@ -57,8 +61,8 @@ module.exports = {
       authors.forEach((author) => {
         table += `
                 <tr>
-                  <td>${author.name}</td>
-                  <td>${author.profile}</td>
+                  <td>${sanitizeHtml(author.name)}</td>
+                  <td>${sanitizeHtml(author.profile)}</td>
                   <td><a href="/author/update?id=${author.id}">update</a></td>
                   <td><form action="/author/delete_process" method="POST">
                     <input type="hidden" name="id" value="${author.id}"/>

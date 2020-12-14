@@ -1,5 +1,6 @@
 const qs = require('querystring');
 const url = require('url'); 
+const sanitizeHtml = require("sanitize-html");
 const db = require("./db");
 const template = require('./template');
 
@@ -36,7 +37,7 @@ exports.detail = (request, response) => {
           const html = template.html(
                   title,
                   list,
-                  `<h2>${title}</h2><article><p>${description}</p>by ${topic[0].name}</article>`,
+                  `<h2>${sanitizeHtml(title)}</h2><article><p>${sanitizeHtml(description)}</p>by ${sanitizeHtml(topic[0].name)}</article>`,
                   `<a href="/create">Create</a> 
                   <a href="/update?id=${queryData.id}">Update</a> 
                   <form action="delete_process" method="POST">
@@ -61,7 +62,7 @@ exports.create = (request, response) => {
                   <form action="/create_process" method="POST">
                     <p><input placeholder="title" type="input" name="title"/></p>
                     <p><textarea placeholder="description" name="description" rows=8></textarea></p>
-                    <p>${template.authorSelect(authors)}</p>
+                    <p>${template.authorSelect(authors, 1)}</p>
                     <p><input type="submit"/></p>
                   </form>
                   `,
@@ -93,7 +94,7 @@ exports.create_process = (request, response) => {
     });
 }
 
-exports.update = (request, response) => {
+exports.update = (request, response) => {   
     const _url = request.url;
     const queryData = url.parse(_url, true).query;
     db.query(`SELECT * FROM topic`, (err, topics) => {
@@ -115,9 +116,9 @@ exports.update = (request, response) => {
                     `
                     <form action="/update_process?id=${queryData.id}" method="POST">
                     <input type="hidden" name="id" value="${queryData.id}"/>
-                    <p><input placeholder="title" type="input" name="title" value="${topic[0].title}"/></p>
-                    <p><textarea placeholder="description" name="description" rows=8>${topic[0].description}</textarea></p>
-                    <p>${template.authorSelect(authors)}</p>
+                    <p><input placeholder="title" type="input" name="title" value="${sanitizeHtml(topic[0].title)}"/></p>
+                    <p><textarea placeholder="description" name="description" rows=8>${sanitizeHtml(topic[0].description)}</textarea></p>
+                    <p>${template.authorSelect(authors, queryData.id)}</p>
                     <p><input type="submit" value="update"/></p>
                     </form>
                     `,
