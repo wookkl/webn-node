@@ -1,4 +1,4 @@
-module.exports =  {
+module.exports = {
     html: (title, li, body, control) => {
       return `
         <!doctype html>
