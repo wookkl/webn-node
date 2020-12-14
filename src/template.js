@@ -6,15 +6,22 @@ module.exports = {
           <head>
             <title>WEB1 - ${title}</title>
             <meta charset="utf-8">
+            <style>
+              table, th, td {
+                border: 1px solid #444444;
+              } 
+              th, td {
+                padding: 5px;
+              }
+            </style>
           </head>
           <body>
             <h1><a href="/">WEB</a></h1>
-            <input id="night_day" type="button" value="night" onclick="
-              nightDayHandler(this);
-            ">
-            <ol>
+            <h3><a href="/author">author</a></h3>
+            <h3>Topics</h3
+            <ul>
               ${li}
-            </ol>
+            </ul>
             ${control}
             ${body}
           </body>
@@ -36,5 +43,31 @@ module.exports = {
         });
         select+='</select>';
         return select;
+    },
+    authorTable: (authors) => {
+      let table = `
+                    <h1>Author Table</h1>
+                    <table><thead>
+                    <tr><th>Name</th>
+                    <th>Profile</th>
+                    <th>Update</th>
+                    <th>Delete</th></tr>
+                    </thead><tbody>
+                  `;
+      authors.forEach((author) => {
+        table += `
+                <tr>
+                  <td>${author.name}</td>
+                  <td>${author.profile}</td>
+                  <td><a href="/author/update?id=${author.id}">update</a></td>
+                  <td><form action="/author/delete_process" method="POST">
+                    <input type="hidden" name="id" value="${author.id}"/>
+                    <input type="submit" value="delete"/>
+                  </form></td>
+                </tr>
+                `;
+      });
+    table+=`</tbody></table>`;
+    return table;
     }
   }

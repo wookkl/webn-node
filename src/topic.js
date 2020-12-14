@@ -19,7 +19,7 @@ exports.home = (request, response) => {
     });
 }
 
-exports.details = (request, response) => {
+exports.detail = (request, response) => {
     const _url = request.url;
     const queryData = url.parse(_url, true).query;
     db.query('SELECT * FROM topic', (err, topics) => {
@@ -101,15 +101,15 @@ exports.update = (request, response) => {
         throw err;
         }
         db.query(`SELECT * FROM topic WHERE id=?`,[queryData.id], (err2, topic) => {
-        if (err2) {
-            throw err2;
-        }
+            if (err2) {
+                throw err2;
+            }
             db.query(`SELECT * FROM author`, (err3, authors) => {
                 if (err3) {
                 throw err3;
                 }
                 const list = template.list(topics);
-                const title = 'Update';
+                const title = 'Update Topic';
                 const html = template.html(title,
                     list,
                     `
@@ -118,7 +118,7 @@ exports.update = (request, response) => {
                     <p><input placeholder="title" type="input" name="title" value="${topic[0].title}"/></p>
                     <p><textarea placeholder="description" name="description" rows=8>${topic[0].description}</textarea></p>
                     <p>${template.authorSelect(authors)}</p>
-                    <p><input type="submit"/></p>
+                    <p><input type="submit" value="update"/></p>
                     </form>
                     `,
                     `<a href="/create">Create</a> <a href="/update?id=${queryData.id}">Update</a>`,
